@@ -1,0 +1,29 @@
+* {
+    box-sizing: border-box;
+}
+
+.block {
+    width: 50vw;
+    height: 75vh;
+    margin: 0 auto;
+    background-color: #000;
+}
+
+.squareRow {
+    height: calc(100% / 30);
+}
+
+.squareOn {
+    border: 1px solid #fff;
+    height: calc(75vh / 30);
+    display: inline-block;
+    width: calc(50vw / 50);
+}
+
+.squareOff {
+    background-color: #999966;
+    border: 1px solid #fff;
+    height: calc(75vh / 30);
+    display: inline-block;
+    width: calc(50vw / 50);
+}
