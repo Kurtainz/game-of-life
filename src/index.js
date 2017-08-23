@@ -2,48 +2,63 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './styles.css';
 
-
-class Square extends React.Component {
-
-    handleClick = () => {
-        this.props.handleClick(this.props.y, this.props.x, this.props.active);
-    }
-    
-    render() {
-
-        let className = 'squareOff';
-        if (this.props.active) {
-            className = 'squareOn';
-        }
-
-         return(
-            <div className={className} onClick={this.handleClick} />
-        )
-    }
-   
-}
-
-const FirstButtonRow = (props) => {
-
-    const handleClick = () => {
-        props.changeSize(props.type);
-    }
+const Grid = (props) => {
 
     return(
         <div>
-            <Button changeSize={props.changeSize} handleClick={handleClick} type='Small' />
-            <Button changeSize={props.changeSize} handleClick={handleClick} type='Medium' />
-            <Button changeSize={props.changeSize} handleClick={handleClick} type='Large' />
+            <h2>Generation: {props.generation}</h2>
+            <div className='block' >{props.grid}</div>
         </div>
     )
 
 }
 
-const SecondButtonRow = (props) => {
+const Square = (props) => {
 
-    const handleClick = () => {
-
+    let className = 'squareOff';
+    if (props.active) {
+        className = 'squareOn';
     }
+
+    const handleClick = () => props.clickSquare(props.y, props.x, props.active);
+
+    return(
+        <div className={className} onClick={handleClick} />
+    )
+
+}
+
+const ActionButtons = (props) => {
+
+    let startStop = 'Stop';
+    if (props.pause === true) {
+        startStop = 'Start';
+    }
+
+    const handleClick = (type) => {
+        if (type === 'Reset') {
+            props.clearBoard();
+        }
+        else {
+            if (type === 'Stop') {
+                props.stopSim();
+            }
+            else {
+                props.startSim();
+            }
+        }
+    }
+
+    return(
+        <div>
+            <Button handleClick={handleClick} type={startStop} />
+            <Button handleClick={handleClick} type='Reset' />
+        </div>
+    )
+
+}
+
+const SpeedButtons = (props) => {
 
     return(
         <div>
@@ -55,58 +70,24 @@ const SecondButtonRow = (props) => {
 
 }
 
-const ThirdButtonRow = (props) => {
-
-    const handleClick = () => {
-        if (props.pause) {
-            props.runSim();
-        }
-        else {
-            props.stopSim();
-        }
-    }
-
-    let pauseText = 'Pause';
-    if (props.pause) {
-        pauseText = 'Start';
-    }
+const SizeButtons = (props) => {
 
     return(
         <div>
-            {/* Stop/Start button */}
-            <Button stopSim={props.stopSim} handleClick={handleClick} type={pauseText} />
-            {/* Clear board button */}
-            <Button handleClick={props.clearBoard} type='Clear' />
+            <Button type='Small' />
+            <Button type='Medium' />
+            <Button type='Large' />
         </div>
     )
 
 }
 
 const Button = (props) => {
-    
-        return(
-            <button onClick={props.handleClick}>{props.type}</button>
-        )
-    
-    }
 
-const Pause = (props) => {
-
-    let text = 'Pause';
-    if (props.pause) {
-        text = 'Start';
-    }
+    const handleClick = () => props.handleClick(props.type);
 
     return(
-        <button>{text}</button>
-    )
-
-}
-
-const Clear = (props) => {
-
-    return(
-        <button>Clear</button>
+        <button onClick={handleClick} >{props.type}</button>
     )
 
 }
@@ -116,52 +97,33 @@ class Game extends React.Component {
     state = {
         width : 50,
         height : 30,
-        grid : [],
-        activeSquares : [],
         pause : false,
-        loop : ''
+        speed : 'Fast',
+        generation : 1,
+        grid : [],
+        pause : false
     }
 
     componentWillMount() {
+        console.log('Mount');
         this.drawBoard();
+        this.setState(prevState => ({
+            grid : this.grid
+        }))
+        this.loop = setInterval(() => {
+            this.grid = this.changeSquares();
+            this.setState(prevState => ({
+                grid : this.grid,
+                generation : prevState.generation += 1
+            }))
+        }, 200)
     }
-
-    // drawBoard = () => {
-    //     const randomSquares = this.randomiseSquares();
-    //     this.setState(prevState => ({
-    //         activeSquares : randomSquares
-    //     }), () => {
-    //             const grid = this.makeSquares();
-    //             this.setState(prevState => ({
-    //                 grid : grid
-    //             }), () => this.runSim())
-    //         }
-    //     )
-    // }
+    
+    grid = [];
 
     drawBoard = () => {
         const randomSquares = this.randomiseSquares();
-        this.changeState({activeSquares : randomSquares}).then(() => {
-            const grid = this.makeSquares();
-            this.changeState({grid : grid});
-        }).then(this.runSim())
-    }
-
-    makeSquares = () => {
-        const newGrid = Array.from({length : this.state.height}, (val, y) => {
-            return <div className='squareRow' key={y} y={y}>
-                 {Array.from({length : this.state.width}, (val, x) => {
-                     let active = false;
-                    this.state.activeSquares.forEach((square) => {
-                        if (square.x === x && square.y === y) {
-                            active = true;
-                        }
-                    })
-                    return <Square key={x} x={x} y={y} active={active} handleClick={this.handleClick} />
-                })}
-            </div>
-        });
-        return newGrid;
+        this.grid = this.makeSquares(randomSquares);
     }
 
     randomiseSquares = () => {
@@ -177,321 +139,259 @@ class Game extends React.Component {
         return randomSquares;
     }
 
-    // runSim = () => {
-    //     this.setState(prevState => ({
-    //         pause : false,
-    //         loop : setInterval(() => this.changeSquares(), 1000)
-    //     }))
-    // }
-
-    runSim = () => {
-        this.changeState({
-            pause : false,
-            loop : setInterval(() => this.changeSquares(), 1000)
-        })
+    makeSquares = (activeSquares) => {
+        const newGrid = Array.from({length : this.state.height}, (val, y) => {
+            return <div className='squareRow' key={y} y={y}>
+                 {Array.from({length : this.state.width}, (val, x) => {
+                    let active = false;
+                    if (activeSquares) {
+                        activeSquares.forEach((square) => {
+                            if (square.x === x && square.y === y) {
+                                active = true;
+                            }
+                        })
+                    }
+                    return <Square key={x} x={x} y={y} active={active} clickSquare={this.clickSquare} />
+                })}
+            </div>
+        });
+        return newGrid;
     }
-
-    // stopSim = () => {
-    //     this.setState(prevState => ({
-    //         pause : true,
-    //         loop : clearInterval(this.state.loop)
-    //     }))
-    // }
-
-    stopSim = () => {
-        this.changeState({
-            pause : true,
-            loop : clearInterval(this.state.loop)
-        })
-    }
-
-    clearBoard = () => {
-        this.stopSim();
-        this.changeState({activeSquares : []}).then(() => {
-            const newGrid = this.makeSquares();
-            this.changeState({grid : newGrid});
-        })
-    }
-
-    // changeState = (newState) => {
-    //     this.setState(prevState => (newState))
-    // }
-
-    changeState = (newState) => {
-        return new Promise((resolve, reject) => {
-            this.setState(prevState => (newState), resolve())
-        })
-    }
-
-    // changeSquares = () => {
-
-    //     let newActiveArr = this.state.activeSquares.slice();
-    //     this.state.grid.forEach((row) => {
-    //         row.props.children.forEach((square) => {
-    //             const x = square.props.x;
-    //             const y = square.props.y;
-    //             let activeCounter = 0;
-    //             const adjSquares = this.getAdjacentSquares(x, y);
-    //             adjSquares.forEach((adjSquare) => {
-    //                 if (this.state.grid[adjSquare.props.y].props.children[adjSquare.props.x].props.active === true) {
-    //                     activeCounter++;
-    //                 }
-    //             })
-    //             if (square.props.active) {
-    //                 if (activeCounter < 2 || activeCounter > 3) {
-    //                     for (let i = 0; i < newActiveArr.length; i++) {
-    //                         if (newActiveArr[i].y === y && newActiveArr[i].x === x) {
-    //                             newActiveArr.splice(i, 1);
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //             else if (!square.props.active) {
-    //                 if (activeCounter === 3) {
-    //                     newActiveArr.push({y : y, x : x});
-    //                 }
-    //             }
-    //         })
-    //     })
-    //     this.setState(prevState => ({
-    //         activeSquares : newActiveArr
-    //     }), () => {
-    //         const newGrid = this.makeSquares();
-    //         this.setState(prevState => ({
-    //             grid : newGrid
-    //         }))
-    //     });
-    // }
 
     changeSquares = () => {
-        
-        let newActiveArr = this.state.activeSquares.slice();
-        this.state.grid.forEach((row) => {
-            row.props.children.forEach((square) => {
-                const x = square.props.x;
-                const y = square.props.y;
-                let activeCounter = 0;
-                const adjSquares = this.getAdjacentSquares(x, y);
-                adjSquares.forEach((adjSquare) => {
-                    if (this.state.grid[adjSquare.props.y].props.children[adjSquare.props.x].props.active === true) {
-                        activeCounter++;
-                    }
-                })
-                if (square.props.active) {
-                    if (activeCounter < 2 || activeCounter > 3) {
-                        for (let i = 0; i < newActiveArr.length; i++) {
-                            if (newActiveArr[i].y === y && newActiveArr[i].x === x) {
-                                newActiveArr.splice(i, 1);
+        const newGrid = Array.from({length : this.state.height}, (val, y) => {
+            return <div className='squareRow' key={y} y={y}>
+                {Array.from({length : this.state.width}, (val, x) => {
+                    let activeCounter = 0;
+                    let active = false;
+                    const adjSquares = this.getAdjacentSquares(x, y);
+                    adjSquares.forEach((adjSquare) => {
+                        if (activeCounter < 4) {
+                            if (this.grid[adjSquare.props.y].props.children[adjSquare.props.x].props.active === true) {
+                                activeCounter++;
                             }
                         }
+                    })
+                    if (this.grid[y].props.children[x].props.active) {
+                        if (activeCounter === 2 || activeCounter === 3) {
+                            active = true;
+                        }
                     }
-                }
-                else if (!square.props.active) {
-                    if (activeCounter === 3) {
-                        newActiveArr.push({y : y, x : x});
+                    else {
+                        if (activeCounter === 3) {
+                            active = true;
+                        }
+                    }
+                    return <Square key={x} x={x} y={y} active={active} clickSquare={this.clickSquare} />
+                })}
+            </div>
+        });
+        return newGrid;
+    }
+
+    clickSquare = (y, x, active) => {
+        clearInterval(this.loop);
+        const activeSquares = [];
+        this.grid.forEach((row) => {
+            row.props.children.forEach((square) => {
+                if (square.props.active) {
+                    if (!(square.props.y === y && square.props.x === x)) {
+                        activeSquares.push({y : square.props.y, x : square.props.x});                        
                     }
                 }
             })
         })
-        this.changeState({activeSquares : newActiveArr}).then(() => {
-            const newGrid = this.makeSquares();
-            this.changeState({grid : newGrid});
-        })
-    }
-
-    // handleClick = (y, x, active) => {
-    //     if (active) {
-    //         this.setState(prevState => ({
-    //             activeSquares : prevState.activeSquares.splice(prevState.activeSquares.findIndex((entry) => entry.y === y && entry.x === x))
-    //         }))
-    //     }
-    //     else {
-    //         this.setState(prevState => ({
-    //             activeSquares : prevState.activeSquares.concat({y : y, x : x})
-    //         }))
-    //     }
-    // }
-
-    handleClick = (y, x, active) => {
-        const prevState = this.state;
-        if (active) {
-            this.changeState({activeSquares : prevState.activeSquares.splice(prevState.activeSquares.findIndex((entry) => entry.y === y && entry.x === x))});
+        if (!active) {
+            activeSquares.push({y : y, x : x})
         }
-        else {
-            this.changeState({activeSquares : prevState.activeSquares.concat({y : y, x : x})});
+        this.grid = this.makeSquares(activeSquares);
+        this.setState(prevState => ({
+            grid : this.grid
+        }))
+        if (!this.state.pause) {
+            this.loop = setInterval(() => {
+                this.grid = this.changeSquares();
+                this.setState(prevState => ({
+                    grid : this.grid,
+                    generation : prevState.generation += 1
+                }))
+            }, 200);
         }
     }
+
+    clearBoard = () => {
+        this.stopSim();
+        this.grid = this.makeSquares();
+        this.setState(prevState => ({grid : this.grid}));
+    }
+
+    stopSim = () => {
+        clearInterval(this.loop);
+        this.setState(prevState => ({pause : true}));
+    }
+
+    startSim = () => {
+        this.setState(prevState => ({pause : false}));
+        this.loop = setInterval(() => {
+            this.grid = this.changeSquares();
+            this.setState(prevState => ({
+                grid : this.grid,
+                generation : prevState.generation += 1
+            }));
+        }, 200);
+    }
+
+    changeState = (obj) => this.setState(prevState => (obj));
 
     getAdjacentSquares = (x, y) => {
-
+        
         const height = this.state.height;
         const width = this.state.width;
 
         // Top left corner
         if (x === 0 && y === 0) {
             return [
-                this.state.grid[height - 1].props.children[width - 1],
-                this.state.grid[height - 1].props.children[x],
-                this.state.grid[height - 1].props.children[x + 1],
-                this.state.grid[y].props.children[width - 1],
-                this.state.grid[y].props.children[x + 1],
-                this.state.grid[y + 1].props.children[width - 1],
-                this.state.grid[y + 1].props.children[x],
-                this.state.grid[y + 1].props.children[x + 1]
+                this.grid[height - 1].props.children[width - 1],
+                this.grid[height - 1].props.children[x],
+                this.grid[height - 1].props.children[x + 1],
+                this.grid[y].props.children[width - 1],
+                this.grid[y].props.children[x + 1],
+                this.grid[y + 1].props.children[width - 1],
+                this.grid[y + 1].props.children[x],
+                this.grid[y + 1].props.children[x + 1]
             ];
         }
         // Bottom left corner
         else if (y === height - 1 && x === 0) {
             return [
-                this.state.grid[y - 1].props.children[width - 1],
-                this.state.grid[y - 1].props.children[x],
-                this.state.grid[y - 1].props.children[x + 1],
-                this.state.grid[y].props.children[width - 1],
-                this.state.grid[y].props.children[x + 1],
-                this.state.grid[0].props.children[width - 1],
-                this.state.grid[0].props.children[x],
-                this.state.grid[0].props.children[x + 1]
+                this.grid[y - 1].props.children[width - 1],
+                this.grid[y - 1].props.children[x],
+                this.grid[y - 1].props.children[x + 1],
+                this.grid[y].props.children[width - 1],
+                this.grid[y].props.children[x + 1],
+                this.grid[0].props.children[width - 1],
+                this.grid[0].props.children[x],
+                this.grid[0].props.children[x + 1]
             ];
         }
         // Top right corner
         else if (x === width - 1 && y === 0) {
             return [
-                this.state.grid[height - 1].props.children[x - 1],
-                this.state.grid[height - 1].props.children[x],
-                this.state.grid[height - 1].props.children[0],
-                this.state.grid[y].props.children[x - 1],
-                this.state.grid[y].props.children[0],
-                this.state.grid[y + 1].props.children[x - 1],
-                this.state.grid[y + 1].props.children[x],
-                this.state.grid[y + 1].props.children[0]
+                this.grid[height - 1].props.children[x - 1],
+                this.grid[height - 1].props.children[x],
+                this.grid[height - 1].props.children[0],
+                this.grid[y].props.children[x - 1],
+                this.grid[y].props.children[0],
+                this.grid[y + 1].props.children[x - 1],
+                this.grid[y + 1].props.children[x],
+                this.grid[y + 1].props.children[0]
             ];
         }
         // Bottom right corner
         else if (x === width - 1 && y === height - 1) {
             return [
-                this.state.grid[y - 1].props.children[0],
-                this.state.grid[y - 1].props.children[x],
-                this.state.grid[y - 1].props.children[0],
-                this.state.grid[y].props.children[x - 1],
-                this.state.grid[y].props.children[0],
-                this.state.grid[0].props.children[x - 1],
-                this.state.grid[0].props.children[x],
-                this.state.grid[0].props.children[0]
+                this.grid[y - 1].props.children[0],
+                this.grid[y - 1].props.children[x],
+                this.grid[y - 1].props.children[0],
+                this.grid[y].props.children[x - 1],
+                this.grid[y].props.children[0],
+                this.grid[0].props.children[x - 1],
+                this.grid[0].props.children[x],
+                this.grid[0].props.children[0]
             ];
         }
         // Top of board, not in corner
         else if (y === 0) {
             return [
-                this.state.grid[height - 1].props.children[x - 1],
-                this.state.grid[height - 1].props.children[x],
-                this.state.grid[height - 1].props.children[x + 1],
-                this.state.grid[y].props.children[x - 1],
-                this.state.grid[y].props.children[x + 1],
-                this.state.grid[y + 1].props.children[x - 1],
-                this.state.grid[y + 1].props.children[x],
-                this.state.grid[y + 1].props.children[x + 1]
+                this.grid[height - 1].props.children[x - 1],
+                this.grid[height - 1].props.children[x],
+                this.grid[height - 1].props.children[x + 1],
+                this.grid[y].props.children[x - 1],
+                this.grid[y].props.children[x + 1],
+                this.grid[y + 1].props.children[x - 1],
+                this.grid[y + 1].props.children[x],
+                this.grid[y + 1].props.children[x + 1]
             ];
         }
         // Right edge, not in corner
         else if (x === width - 1) {
             return [
-                this.state.grid[y - 1].props.children[x - 1],
-                this.state.grid[y - 1].props.children[x],
-                this.state.grid[y - 1].props.children[0],
-                this.state.grid[y].props.children[x - 1],
-                this.state.grid[y].props.children[0],
-                this.state.grid[y + 1].props.children[x - 1],
-                this.state.grid[y + 1].props.children[x],
-                this.state.grid[y + 1].props.children[0]
+                this.grid[y - 1].props.children[x - 1],
+                this.grid[y - 1].props.children[x],
+                this.grid[y - 1].props.children[0],
+                this.grid[y].props.children[x - 1],
+                this.grid[y].props.children[0],
+                this.grid[y + 1].props.children[x - 1],
+                this.grid[y + 1].props.children[x],
+                this.grid[y + 1].props.children[0]
             ];
         }
         // Bottom edge, not in corner
         else if (y === height - 1) {
             return [
-                this.state.grid[y - 1].props.children[x - 1],
-                this.state.grid[y - 1].props.children[x],
-                this.state.grid[y - 1].props.children[x + 1],
-                this.state.grid[y].props.children[x - 1],
-                this.state.grid[y].props.children[x + 1],
-                this.state.grid[0].props.children[x - 1],
-                this.state.grid[0].props.children[x],
-                this.state.grid[0].props.children[x + 1]
+                this.grid[y - 1].props.children[x - 1],
+                this.grid[y - 1].props.children[x],
+                this.grid[y - 1].props.children[x + 1],
+                this.grid[y].props.children[x - 1],
+                this.grid[y].props.children[x + 1],
+                this.grid[0].props.children[x - 1],
+                this.grid[0].props.children[x],
+                this.grid[0].props.children[x + 1]
             ];
         }
         // Left edge, not in corner
         else if (x === 0) {
             return [
-                this.state.grid[0].props.children[width - 1],
-                this.state.grid[y - 1].props.children[x],
-                this.state.grid[y - 1].props.children[x + 1],
-                this.state.grid[y].props.children[width - 1],
-                this.state.grid[y].props.children[x + 1],
-                this.state.grid[y + 1].props.children[width - 1],
-                this.state.grid[y + 1].props.children[x],
-                this.state.grid[y + 1].props.children[x + 1]
+                this.grid[0].props.children[width - 1],
+                this.grid[y - 1].props.children[x],
+                this.grid[y - 1].props.children[x + 1],
+                this.grid[y].props.children[width - 1],
+                this.grid[y].props.children[x + 1],
+                this.grid[y + 1].props.children[width - 1],
+                this.grid[y + 1].props.children[x],
+                this.grid[y + 1].props.children[x + 1]
             ];
         }
         // No edges
         else {
             return [
-                this.state.grid[y - 1].props.children[x - 1],
-                this.state.grid[y - 1].props.children[x],
-                this.state.grid[y - 1].props.children[x + 1],
-                this.state.grid[y].props.children[x - 1],
-                this.state.grid[y].props.children[x + 1],
-                this.state.grid[y + 1].props.children[x - 1],
-                this.state.grid[y + 1].props.children[x],
-                this.state.grid[y + 1].props.children[x + 1]
+                this.grid[y - 1].props.children[x - 1],
+                this.grid[y - 1].props.children[x],
+                this.grid[y - 1].props.children[x + 1],
+                this.grid[y].props.children[x - 1],
+                this.grid[y].props.children[x + 1],
+                this.grid[y + 1].props.children[x - 1],
+                this.grid[y + 1].props.children[x],
+                this.grid[y + 1].props.children[x + 1]
             ];
         }
 
     }
 
-    changeSize = (size) => {
-        let width = 30;
-        let height = 50;
-        if (size === 'Medium') {
-            width = 60;
-            height = 90;
-        }
-        else if (size === 'Large') {
-            width = 100;
-            height = 150;
-        }
-        this.changeState({
-            width : width,
-            height : height
-        }).then(this.drawBoard);
-    }
-
     render() {
         return(
             <div>
-                <div className='block'>
-                    {this.state.grid}
-                </div>
+                <Grid generation={this.state.generation} grid={this.state.grid} />
                 <div>
-                    <FirstButtonRow changeSize={this.changeSize} />
-                    <SecondButtonRow />
-                    <ThirdButtonRow pause={this.state.pause} runSim={this.runSim} stopSim={this.stopSim} clearBoard={this.clearBoard} />
+                    <ActionButtons pause={this.state.pause} clearBoard={this.clearBoard} stopSim={this.stopSim} startSim={this.startSim} />
                 </div>
             </div>
         )
     }
-
+    
 }
 
 class App extends React.Component {
-
-    render() {
-        return(
-            <div>
-                <h1>Welcome To The New Project</h1>
-                <Game />
-            </div>
-        )
+    
+        render() {
+            return(
+                <div>
+                    <h1>Welcome To The New Project</h1>
+                    <Game />
+                </div>
+            )
+        }
+    
     }
-
-}
-
-ReactDOM.render(<App />, document.getElementById('root'));
+    
+    ReactDOM.render(<App />, document.getElementById('root'));
