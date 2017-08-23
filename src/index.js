@@ -60,11 +60,13 @@ const ActionButtons = (props) => {
 
 const SpeedButtons = (props) => {
 
+    const handleClick = (type) => props.changeSpeed(type);
+
     return(
         <div>
-            <Button type='Slow' />
-            <Button type='Mid' />
-            <Button type='Fast' />
+            <Button handleClick={handleClick} type='Slow' />
+            <Button handleClick={handleClick} type='Mid' />
+            <Button handleClick={handleClick} type='Fast' />
         </div>
     )
 
@@ -222,7 +224,10 @@ class Game extends React.Component {
     clearBoard = () => {
         this.stopSim();
         this.grid = this.makeSquares();
-        this.setState(prevState => ({grid : this.grid}));
+        this.setState(prevState => ({
+            grid : this.grid,
+            generation : 0
+        }));
     }
 
     stopSim = () => {
@@ -239,6 +244,25 @@ class Game extends React.Component {
                 generation : prevState.generation += 1
             }));
         }, 200);
+    }
+
+    changeSpeed = (speed) => {
+        let interval = 200;
+        if (speed === 'Slow') {
+            console.log('Slow');
+            interval = 1000;
+        }
+        else if (speed === 'Mid') {
+            interval = 700;
+        }
+        clearInterval(this.loop);
+        this.loop = setInterval(() => {
+            this.grid = this.changeSquares();
+            this.setState(prevState => ({
+                grid : this.grid,
+                generation : prevState.generation += 1
+            }));
+        }, interval);
     }
 
     changeState = (obj) => this.setState(prevState => (obj));
@@ -374,6 +398,9 @@ class Game extends React.Component {
                 <Grid generation={this.state.generation} grid={this.state.grid} />
                 <div>
                     <ActionButtons pause={this.state.pause} clearBoard={this.clearBoard} stopSim={this.stopSim} startSim={this.startSim} />
+                </div>
+                <div>
+                    <SpeedButtons changeSpeed={this.changeSpeed} />
                 </div>
             </div>
         )
