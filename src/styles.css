@@ -9,21 +9,19 @@
     background-color: #000;
 }
 
-.squareRow {
+/* .squareRow {
     height: calc(100% / 30);
-}
+} */
 
 .squareOn {
     border: 1px solid #fff;
-    height: calc(75vh / 30);
+    height: 100%;
     display: inline-block;
-    width: calc(50vw / 50);
 }
 
 .squareOff {
     background-color: #999966;
     border: 1px solid #fff;
-    height: calc(75vh / 30);
+    height: 100%;
     display: inline-block;
-    width: calc(50vw / 50);
 }

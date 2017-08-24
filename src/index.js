@@ -23,7 +23,7 @@ const Square = (props) => {
     const handleClick = () => props.clickSquare(props.y, props.x, props.active);
 
     return(
-        <div className={className} onClick={handleClick} />
+        <div className={className} onClick={handleClick} style={props.style} />
     )
 
 }
@@ -64,9 +64,9 @@ const SpeedButtons = (props) => {
 
     return(
         <div>
-            <Button handleClick={handleClick} type='Slow' />
-            <Button handleClick={handleClick} type='Mid' />
-            <Button handleClick={handleClick} type='Fast' />
+            <Button currentState={props.speed} handleClick={handleClick} type='Slow' />
+            <Button currentState={props.speed} handleClick={handleClick} type='Mid' />
+            <Button currentState={props.speed} handleClick={handleClick} type='Fast' />
         </div>
     )
 
@@ -74,11 +74,13 @@ const SpeedButtons = (props) => {
 
 const SizeButtons = (props) => {
 
+    const handleClick = (type) => props.changeSize(type);
+
     return(
         <div>
-            <Button type='Small' />
-            <Button type='Medium' />
-            <Button type='Large' />
+            <Button currentState={props.size} handleClick={handleClick} type='Small' />
+            <Button currentState={props.size} handleClick={handleClick} type='Medium' />
+            <Button currentState={props.size} handleClick={handleClick} type='Large' />
         </div>
     )
 
@@ -88,8 +90,13 @@ const Button = (props) => {
 
     const handleClick = () => props.handleClick(props.type);
 
+    let disabled = false;
+    if (props.currentState === props.type) {
+        disabled = true;
+    }
+
     return(
-        <button onClick={handleClick} >{props.type}</button>
+        <button disabled={disabled} onClick={handleClick} >{props.type}</button>
     )
 
 }
@@ -101,9 +108,9 @@ class Game extends React.Component {
         height : 30,
         pause : false,
         speed : 'Fast',
+        size : 'Medium',
         generation : 1,
         grid : [],
-        pause : false
     }
 
     componentWillMount() {
@@ -122,6 +129,33 @@ class Game extends React.Component {
     }
     
     grid = [];
+
+    smallSquareRow = {
+        height : 'calc(100% / 24)'
+    };
+
+    smallSquare = {
+        width : 'calc(100% / 30)'
+    }
+
+    medSquareRow = {
+        height : 'calc(100% / 30)'
+    };
+
+    medSquare = {
+        width : 'calc(100% / 50)'
+    }
+
+    largeSquareRow = {
+        height : 'calc(100% / 40)'
+    };
+
+    largeSquare = {
+        width : 'calc(100% / 70)'
+    }
+
+    rowStyle = this.medSquareRow;
+    squareStyle = this.medSquare;
 
     drawBoard = () => {
         const randomSquares = this.randomiseSquares();
@@ -143,7 +177,7 @@ class Game extends React.Component {
 
     makeSquares = (activeSquares) => {
         const newGrid = Array.from({length : this.state.height}, (val, y) => {
-            return <div className='squareRow' key={y} y={y}>
+            return <div style={this.rowStyle} key={y} y={y}>
                  {Array.from({length : this.state.width}, (val, x) => {
                     let active = false;
                     if (activeSquares) {
@@ -153,16 +187,33 @@ class Game extends React.Component {
                             }
                         })
                     }
-                    return <Square key={x} x={x} y={y} active={active} clickSquare={this.clickSquare} />
+                    return <Square key={x} x={x} y={y} active={active} style={this.squareStyle} clickSquare={this.clickSquare} />
                 })}
             </div>
         });
         return newGrid;
     }
 
+    setStyle = (size) => {
+        switch (size) {
+            case 'Small':
+                this.rowStyle = this.smallSquareRow;
+                this.squareStyle = this.smallSquare;
+                break;
+            case 'Medium':
+                this.rowStyle = this.medSquareRow;
+                this.squareStyle = this.medSquare;
+                break;
+            case 'Large':
+                this.rowStyle = this.largeSquareRow;
+                this.squareStyle = this.largeSquare;
+                break;
+        }
+    }
+
     changeSquares = () => {
         const newGrid = Array.from({length : this.state.height}, (val, y) => {
-            return <div className='squareRow' key={y} y={y}>
+            return <div style={this.rowStyle} className='squareRow' key={y} y={y}>
                 {Array.from({length : this.state.width}, (val, x) => {
                     let activeCounter = 0;
                     let active = false;
@@ -184,7 +235,7 @@ class Game extends React.Component {
                             active = true;
                         }
                     }
-                    return <Square key={x} x={x} y={y} active={active} clickSquare={this.clickSquare} />
+                    return <Square key={x} x={x} y={y} active={active} style={this.squareStyle} clickSquare={this.clickSquare} />
                 })}
             </div>
         });
@@ -221,6 +272,16 @@ class Game extends React.Component {
         }
     }
 
+    getActiveSquares = () => {
+        this.grid.forEach((row) => {
+            row.props.children.forEach((square) => {
+                if (square.props.active) {
+                    
+                }
+            })
+        })
+    }
+
     clearBoard = () => {
         this.stopSim();
         this.grid = this.makeSquares();
@@ -255,6 +316,7 @@ class Game extends React.Component {
         else if (speed === 'Mid') {
             interval = 700;
         }
+        this.setState(prevState => ({speed : speed}));
         clearInterval(this.loop);
         this.loop = setInterval(() => {
             this.grid = this.changeSquares();
@@ -263,6 +325,41 @@ class Game extends React.Component {
                 generation : prevState.generation += 1
             }));
         }, interval);
+    }
+
+    changeSize = (size) => {
+        let width = 50;
+        let height = 30;
+        switch (size) {
+            case 'Small':
+                width = 30;
+                height = 24;
+                break;
+            case 'Large':
+                width = 70;
+                height = 40;
+                break;
+        }
+        this.setState(prevState => ({
+            size : size,
+            width : width,
+            height : height
+        }), () => {
+            const activeSquares = [];
+            this.grid.forEach((row) => {
+                row.props.children.forEach((square) => {
+                    if (square.props.active) {
+                        activeSquares.push({y : square.props.y, x : square.props.x});
+                    }
+                })
+            })
+            this.setStyle(size);
+            this.grid = this.makeSquares(activeSquares);
+            this.setState(prevState => ({grid : this.grid}));
+            if (!this.state.pause) {
+                this.changeSpeed(this.state.speed);                
+            }
+        })
     }
 
     changeState = (obj) => this.setState(prevState => (obj));
@@ -400,7 +497,10 @@ class Game extends React.Component {
                     <ActionButtons pause={this.state.pause} clearBoard={this.clearBoard} stopSim={this.stopSim} startSim={this.startSim} />
                 </div>
                 <div>
-                    <SpeedButtons changeSpeed={this.changeSpeed} />
+                    <SpeedButtons speed={this.state.speed} changeSpeed={this.changeSpeed} />
+                </div>
+                <div>
+                    <SizeButtons size={this.state.size} changeSize={this.changeSize} />
                 </div>
             </div>
         )
