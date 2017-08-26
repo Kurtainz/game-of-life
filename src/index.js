@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import './buttons-min.css';
 import './styles.css';
 
 const Grid = (props) => {
@@ -50,7 +51,7 @@ const ActionButtons = (props) => {
     }
 
     return(
-        <div>
+        <div className='buttonRow'>
             <Button handleClick={handleClick} type={startStop} />
             <Button handleClick={handleClick} type='Reset' />
         </div>
@@ -63,7 +64,7 @@ const SpeedButtons = (props) => {
     const handleClick = (type) => props.changeSpeed(type);
 
     return(
-        <div>
+        <div className='buttonRow'>
             <Button currentState={props.speed} handleClick={handleClick} type='Slow' />
             <Button currentState={props.speed} handleClick={handleClick} type='Mid' />
             <Button currentState={props.speed} handleClick={handleClick} type='Fast' />
@@ -77,7 +78,7 @@ const SizeButtons = (props) => {
     const handleClick = (type) => props.changeSize(type);
 
     return(
-        <div>
+        <div className='buttonRow'>
             <Button currentState={props.size} handleClick={handleClick} type='Small' />
             <Button currentState={props.size} handleClick={handleClick} type='Medium' />
             <Button currentState={props.size} handleClick={handleClick} type='Large' />
@@ -91,12 +92,14 @@ const Button = (props) => {
     const handleClick = () => props.handleClick(props.type);
 
     let disabled = false;
+    let buttonClass = 'pure-button';
     if (props.currentState === props.type) {
         disabled = true;
+        buttonClass = 'pure-button pure-button-active';
     }
 
     return(
-        <button disabled={disabled} onClick={handleClick} >{props.type}</button>
+        <button className={buttonClass} disabled={disabled} onClick={handleClick} >{props.type}</button>
     )
 
 }
@@ -114,7 +117,6 @@ class Game extends React.Component {
     }
 
     componentWillMount() {
-        console.log('Mount');
         this.drawBoard();
         this.setState(prevState => ({
             grid : this.grid
@@ -200,13 +202,13 @@ class Game extends React.Component {
                 this.rowStyle = this.smallSquareRow;
                 this.squareStyle = this.smallSquare;
                 break;
-            case 'Medium':
-                this.rowStyle = this.medSquareRow;
-                this.squareStyle = this.medSquare;
-                break;
             case 'Large':
                 this.rowStyle = this.largeSquareRow;
                 this.squareStyle = this.largeSquare;
+                break;
+            default:
+                this.rowStyle = this.medSquareRow;
+                this.squareStyle = this.medSquare;
                 break;
         }
     }
@@ -310,7 +312,6 @@ class Game extends React.Component {
     changeSpeed = (speed) => {
         let interval = 200;
         if (speed === 'Slow') {
-            console.log('Slow');
             interval = 1000;
         }
         else if (speed === 'Mid') {
@@ -328,8 +329,8 @@ class Game extends React.Component {
     }
 
     changeSize = (size) => {
-        let width = 50;
-        let height = 30;
+        let width;
+        let height;
         switch (size) {
             case 'Small':
                 width = 30;
@@ -339,6 +340,9 @@ class Game extends React.Component {
                 width = 70;
                 height = 40;
                 break;
+            default:
+                width = 50;
+                height = 30;
         }
         this.setState(prevState => ({
             size : size,
@@ -493,15 +497,9 @@ class Game extends React.Component {
         return(
             <div>
                 <Grid generation={this.state.generation} grid={this.state.grid} />
-                <div>
-                    <ActionButtons pause={this.state.pause} clearBoard={this.clearBoard} stopSim={this.stopSim} startSim={this.startSim} />
-                </div>
-                <div>
-                    <SpeedButtons speed={this.state.speed} changeSpeed={this.changeSpeed} />
-                </div>
-                <div>
-                    <SizeButtons size={this.state.size} changeSize={this.changeSize} />
-                </div>
+                <ActionButtons pause={this.state.pause} clearBoard={this.clearBoard} stopSim={this.stopSim} startSim={this.startSim} />
+                <SpeedButtons speed={this.state.speed} changeSpeed={this.changeSpeed} />
+                <SizeButtons size={this.state.size} changeSize={this.changeSize} />
             </div>
         )
     }
@@ -513,7 +511,7 @@ class App extends React.Component {
         render() {
             return(
                 <div>
-                    <h1>Welcome To The New Project</h1>
+                    <h1>Game Of Life</h1>
                     <Game />
                 </div>
             )
